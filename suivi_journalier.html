@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Suivi Journalier des Projets</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f4f8;
+      color: #2d3748;
+      padding: 20px;
+    }
+    .header {
+      background: linear-gradient(135deg, #1a365d, #2b6cb0);
+      color: white;
+      padding: 28px 36px;
+      border-radius: 12px;
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 16px rgba(43,108,176,0.3);
+    }
+    .header h1 { font-size: 1.7rem; font-weight: 700; letter-spacing: 1px; }
+    .header .subtitle { font-size: 0.95rem; opacity: 0.85; margin-top: 4px; }
+    .header .date-badge {
+      background: rgba(255,255,255,0.2);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      text-align: center;
+    }
+    .meta-section {
+      background: white;
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px;
+    }
+    .meta-section .full-width { grid-column: 1 / -1; }
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    input[type="text"], input[type="date"], input[type="number"],
+    select, textarea {
+      width: 100%;
+      padding: 9px 13px;
+      border: 1.5px solid #cbd5e0;
+      border-radius: 7px;
+      font-size: 0.95rem;
+      background: #f7fafc;
+      transition: border-color 0.2s;
+      color: #2d3748;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #2b6cb0;
+      background: #ebf4ff;
+    }
+    textarea { resize: vertical; min-height: 70px; }
+
+    /* TABS */
+    .tabs { display: flex; gap: 6px; margin-bottom: 0; }
+    .tab-btn {
+      padding: 11px 26px;
+      border: none;
+      border-radius: 9px 9px 0 0;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      background: #cbd5e0;
+      color: #4a5568;
+      transition: all 0.2s;
+    }
+    .tab-btn.active { color: white; }
+    .tab-btn.logiciel.active  { background: #2b6cb0; }
+    .tab-btn.informatique.active { background: #276749; }
+    .tab-btn.telecom.active   { background: #744210; }
+    .tab-content {
+      display: none;
+      background: white;
+      border-radius: 0 10px 10px 10px;
+      padding: 28px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      margin-bottom: 24px;
+    }
+    .tab-content.active { display: block; }
+
+    /* Dept header */
+    .dept-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .dept-icon {
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+    .logiciel .dept-icon  { background: #ebf4ff; }
+    .informatique .dept-icon { background: #f0fff4; }
+    .telecom .dept-icon   { background: #fffaf0; }
+    .dept-header h2 { font-size: 1.15rem; font-weight: 700; }
+    .logiciel .dept-header h2  { color: #2b6cb0; }
+    .informatique .dept-header h2 { color: #276749; }
+    .telecom .dept-header h2   { color: #744210; }
+
+    /* Project block */
+    .project-block {
+      border: 1.5px solid #e2e8f0;
+      border-radius: 9px;
+      padding: 20px;
+      margin-bottom: 18px;
+      background: #f7fafc;
+    }
+    .project-block-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .project-num {
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+      color: white;
+    }
+    .logiciel .project-num  { background: #2b6cb0; }
+    .informatique .project-num { background: #276749; }
+    .telecom .project-num   { background: #744210; }
+    .remove-btn {
+      background: #fc8181; color: white; border: none;
+      padding: 4px 12px; border-radius: 5px;
+      cursor: pointer; font-size: 0.82rem; font-weight: 600;
+    }
+    .remove-btn:hover { background: #f56565; }
+
+    /* Grid inside project */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .full { grid-column: 1 / -1; }
+
+    /* Progress bar */
+    .progress-group { margin-bottom: 14px; }
+    .progress-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+    .progress-bar-bg {
+      height: 10px; background: #e2e8f0; border-radius: 10px; overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%; border-radius: 10px;
+      transition: width 0.3s;
+    }
+    .logiciel  .progress-bar-fill { background: linear-gradient(90deg,#2b6cb0,#63b3ed); }
+    .informatique .progress-bar-fill { background: linear-gradient(90deg,#276749,#68d391); }
+    .telecom   .progress-bar-fill { background: linear-gradient(90deg,#744210,#f6ad55); }
+
+    /* Tasks table */
+    .task-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 0.88rem; }
+    .task-table th {
+      background: #edf2f7; padding: 8px 10px;
+      text-align: left; font-size: 0.78rem;
+      font-weight: 700; text-transform: uppercase; color: #4a5568;
+    }
+    .task-table td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; }
+    .task-table tr:last-child td { border-bottom: none; }
+    .task-table input[type="number"] { max-width: 70px; }
+    .status-select { max-width: 140px; }
+
+    /* Status badge */
+    .status-ok    { color: #276749; font-weight: 700; }
+    .status-warn  { color: #b7791f; font-weight: 700; }
+    .status-block { color: #c53030; font-weight: 700; }
+
+    /* Buttons */
+    .add-task-btn, .add-project-btn {
+      border: none; border-radius: 7px;
+      padding: 8px 18px; cursor: pointer;
+      font-weight: 600; font-size: 0.88rem;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .add-task-btn {
+      background: #ebf4ff; color: #2b6cb0; margin-bottom: 14px;
+    }
+    .add-task-btn:hover { background: #bee3f8; }
+    .logiciel .add-task-btn    { background: #ebf4ff; color: #2b6cb0; }
+    .informatique .add-task-btn { background: #f0fff4; color: #276749; }
+    .telecom .add-task-btn     { background: #fffaf0; color: #744210; }
+    .logiciel .add-task-btn:hover    { background: #bee3f8; }
+    .informatique .add-task-btn:hover { background: #c6f6d5; }
+    .telecom .add-task-btn:hover     { background: #feebc8; }
+
+    .add-project-btn { padding: 10px 22px; font-size: 0.95rem; margin-top: 4px; }
+    .logiciel .add-project-btn    { background: #2b6cb0; color: white; }
+    .informatique .add-project-btn { background: #276749; color: white; }
+    .telecom .add-project-btn     { background: #744210; color: white; }
+    .add-project-btn:hover { opacity: 0.88; }
+
+    /* Section inside project */
+    .section-title {
+      font-size: 0.85rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      color: #718096; margin: 14px 0 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+
+    /* Summary */
+    .summary-bar {
+      background: white; border-radius: 10px;
+      padding: 20px 28px; margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px;
+    }
+    .summary-card {
+      border-radius: 9px; padding: 16px;
+      text-align: center;
+    }
+    .summary-card.logiciel  { background: #ebf4ff; border-left: 4px solid #2b6cb0; }
+    .summary-card.informatique { background: #f0fff4; border-left: 4px solid #276749; }
+    .summary-card.telecom   { background: #fffaf0; border-left: 4px solid #744210; }
+    .summary-card .s-label { font-size: 0.8rem; color: #718096; font-weight: 600; margin-bottom: 4px; }
+    .summary-card .s-value { font-size: 1.6rem; font-weight: 800; }
+    .logiciel .s-value  { color: #2b6cb0; }
+    .informatique .s-value { color: #276749; }
+    .telecom .s-value   { color: #744210; }
+
+    /* Footer buttons */
+    .action-bar {
+      display: flex; gap: 14px; justify-content: flex-end;
+      margin-top: 10px;
+    }
+    .btn-print, .btn-save {
+      padding: 12px 30px; border: none; border-radius: 8px;
+      cursor: pointer; font-size: 1rem; font-weight: 700;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-print { background: #e2e8f0; color: #2d3748; }
+    .btn-print:hover { background: #cbd5e0; }
+    .btn-save { background: #2b6cb0; color: white; box-shadow: 0 3px 10px rgba(43,108,176,0.3); }
+    .btn-save:hover { background: #2c5282; }
+    .btn-export { background: #276749; color: white; padding: 12px 30px; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 3px 10px rgba(39,103,73,0.3); }
+    .btn-export:hover { background: #22543d; }
+
+    /* Alert */
+    .alert-box {
+      background: #fff5f5; border: 1.5px solid #feb2b2;
+      border-radius: 8px; padding: 12px 16px;
+      font-size: 0.88rem; color: #c53030;
+      margin-bottom: 14px; display: none;
+    }
+
+    @media print {
+      body { background: white; }
+      .tab-btn, .add-task-btn, .add-project-btn, .remove-btn, .action-bar { display: none !important; }
+      .tab-content { display: block !important; page-break-before: always; }
+      .tab-content:first-of-type { page-break-before: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="subtitle">📋 RAPPORT DE SUIVI JOURNALIER DES ACTIVITÉS</div>
+    <h1>Tableau de Bord des Projets</h1>
+    <div class="subtitle" style="margin-top:6px">Logiciel · Informatique · Télécom</div>
+  </div>
+  <div class="date-badge">
+    <div style="font-size:0.75rem;opacity:0.8;margin-bottom:2px">DATE DU JOUR</div>
+    <input type="date" id="dateJour" style="background:transparent;border:none;color:white;font-size:1rem;font-weight:700;text-align:center;cursor:pointer;" />
+  </div>
+</div>
+
+<!-- META -->
+<div class="meta-section">
+  <div>
+    <label>👤 Responsable / Chef de projet</label>
+    <input type="text" id="responsable" placeholder="Nom du responsable" />
+  </div>
+  <div>
+    <label>📍 Direction / Entité</label>
+    <input type="text" id="direction" placeholder="Ex: AFRIK LONNYA TEAM" value="AFRIK LONNYA TEAM" />
+  </div>
+  <div>
+    <label>🔄 Période couverte</label>
+    <select id="periode">
+      <option>Journalier</option>
+      <option>Hebdomadaire</option>
+      <option>Mensuel</option>
+    </select>
+  </div>
+  <div class="full">
+    <label>📝 Observations générales / Résumé du jour</label>
+    <textarea id="obsGenerales" placeholder="Bilan global de la journée, points marquants, décisions prises..."></textarea>
+  </div>
+</div>
+
+<!-- SUMMARY BAR -->
+<div class="summary-bar">
+  <div class="summary-card logiciel">
+    <div class="s-label">🖥️ Dept. LOGICIEL</div>
+    <div class="s-value" id="count-log">0</div>
+    <div class="s-label">projets actifs</div>
+  </div>
+  <div class="summary-card informatique">
+    <div class="s-label">💻 Dept. INFORMATIQUE</div>
+    <div class="s-value" id="count-info">0</div>
+    <div class="s-label">projets actifs</div>
+  </div>
+  <div class="summary-card telecom">
+    <div class="s-label">📡 Dept. TÉLÉCOM</div>
+    <div class="s-value" id="count-tel">0</div>
+    <div class="s-label">projets actifs</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn logiciel active"   onclick="switchTab('logiciel')">🖥️ Logiciel</button>
+  <button class="tab-btn informatique" onclick="switchTab('informatique')">💻 Informatique</button>
+  <button class="tab-btn telecom"      onclick="switchTab('telecom')">📡 Télécom</button>
+</div>
+
+<!-- ===== LOGICIEL ===== -->
+<div id="tab-logiciel" class="tab-content logiciel active">
+  <div class="dept-header">
+    <div class="dept-icon">🖥️</div>
+    <div>
+      <h2>Département Logiciel</h2>
+      <div style="font-size:0.82rem;color:#718096">Développement · Applications · ERP · CRM · Web · Mobile</div>
+    </div>
+  </div>
+  <div id="projects-logiciel"></div>
+  <button class="add-project-btn" onclick="addProject('logiciel')">＋ Ajouter un projet</button>
+</div>
+
+<!-- ===== INFORMATIQUE ===== -->
+<div id="tab-informatique" class="tab-content informatique">
+  <div class="dept-header">
+    <div class="dept-icon">💻</div>
+    <div>
+      <h2>Département Informatique</h2>
+      <div style="font-size:0.82rem;color:#718096">Infrastructure · Réseaux · Sécurité · Support · Serveurs</div>
+    </div>
+  </div>
+  <div id="projects-informatique"></div>
+  <button class="add-project-btn" onclick="addProject('informatique')">＋ Ajouter un projet</button>
+</div>
+
+<!-- ===== TELECOM ===== -->
+<div id="tab-telecom" class="tab-content telecom">
+  <div class="dept-header">
+    <div class="dept-icon">📡</div>
+    <div>
+      <h2>Département Télécom</h2>
+      <div style="font-size:0.82rem;color:#718096">Fibre · VoIP · Radiocommunication · Câblage · Antennes</div>
+    </div>
+  </div>
+  <div id="projects-telecom"></div>
+  <button class="add-project-btn" onclick="addProject('telecom')">＋ Ajouter un projet</button>
+</div>
+
+<!-- ACTIONS -->
+<div class="action-bar">
+  <button class="btn-print" onclick="window.print()">🖨️ Imprimer</button>
+  <button class="btn-export" onclick="exportJSON()">💾 Exporter JSON</button>
+  <button class="btn-save" onclick="saveLocal()">✅ Sauvegarder</button>
+</div>
+
+<script>
+  // ===== Init date =====
+  const today = new Date();
+  document.getElementById('dateJour').value = today.toISOString().split('T')[0];
+
+  // ===== Tab switching =====
+  function switchTab(dept) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + dept).classList.add('active');
+    document.querySelector('.tab-btn.' + dept).classList.add('active');
+  }
+
+  // ===== Project counters =====
+  let counters = { logiciel: 0, informatique: 0, telecom: 0 };
+  let taskCounters = {};
+
+  function updateSummary() {
+    ['logiciel','informatique','telecom'].forEach(d => {
+      const n = document.querySelectorAll('#projects-' + d + ' .project-block').length;
+      const map = { logiciel: 'log', informatique: 'info', telecom: 'tel' };
+      document.getElementById('count-' + map[d]).textContent = n;
+    });
+  }
+
+  // ===== Add project =====
+  function addProject(dept) {
+    counters[dept]++;
+    const pid = dept + '_' + counters[dept];
+    taskCounters[pid] = 0;
+    const colors = { logiciel: '#2b6cb0', informatique: '#276749', telecom: '#744210' };
+    const col = colors[dept];
+
+    const block = document.createElement('div');
+    block.className = 'project-block';
+    block.id = 'project_' + pid;
+    block.innerHTML = `
+      <div class="project-block-header">
+        <span class="project-num ${dept}">Projet #${counters[dept]}</span>
+        <button class="remove-btn" onclick="removeProject('${pid}','${dept}')">✕ Supprimer</button>
+      </div>
+
+      <div class="grid-3">
+        <div>
+          <label>📁 Nom du projet</label>
+          <input type="text" id="${pid}_nom" placeholder="Intitulé du projet" />
+        </div>
+        <div>
+          <label>🔖 Référence du projet</label>
+          <input type="text" id="${pid}_ref" placeholder="Ex: PROJ-2026-001" />
+        </div>
+        <div>
+          <label>📅 Date de début</label>
+          <input type="date" id="${pid}_debut" />
+        </div>
+        <div>
+          <label>🏁 Date de fin prévue</label>
+          <input type="date" id="${pid}_fin" />
+        </div>
+        <div>
+          <label>👤 Chef de projet</label>
+          <input type="text" id="${pid}_chef" placeholder="Responsable" />
+        </div>
+        <div>
+          <label>📊 Statut global</label>
+          <select id="${pid}_statut">
+            <option value="en_cours">🟡 En cours</option>
+            <option value="ok">🟢 Dans les délais</option>
+            <option value="retard">🔴 En retard</option>
+            <option value="pause">⏸️ En pause</option>
+            <option value="termine">✅ Terminé</option>
+          </select>
+        </div>
+        <div>
+          <label>📈 Avancement global (%)</label>
+          <input type="number" id="${pid}_avancement" min="0" max="100" value="0"
+            oninput="updateProgress('${pid}')" placeholder="0-100" />
+        </div>
+        <div>
+          <label>💰 Budget alloué (FCFA)</label>
+          <input type="text" id="${pid}_budget" placeholder="Ex: 5 000 000" />
+        </div>
+        <div>
+          <label>👥 Équipe / Intervenants</label>
+          <input type="text" id="${pid}_equipe" placeholder="Noms des membres" />
+        </div>
+      </div>
+
+      <div class="progress-group">
+        <div class="progress-label">
+          <span style="font-size:0.82rem;font-weight:600;color:#4a5568">Avancement global</span>
+          <span id="${pid}_pct" style="font-weight:800;color:${col}">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill ${dept}" id="${pid}_bar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="section-title">📋 Tâches en cours</div>
+      <button class="add-task-btn ${dept}" onclick="addTask('${pid}','${dept}')">＋ Ajouter une tâche</button>
+      <table class="task-table" id="tasks_${pid}">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Intitulé de la tâche</th>
+            <th>Responsable</th>
+            <th>Statut</th>
+            <th>Progression (%)</th>
+            <th>Barre</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tasks_body_${pid}">
+        </tbody>
+      </table>
+
+      <div class="grid-2">
+        <div>
+          <div class="section-title">⚠️ Problèmes rencontrés</div>
+          <textarea id="${pid}_problemes" placeholder="Obstacles, blocages, erreurs, retards..."></textarea>
+        </div>
+        <div>
+          <div class="section-title">📦 Besoins identifiés</div>
+          <textarea id="${pid}_besoins" placeholder="Ressources, matériel, formations, autorisations..."></textarea>
+        </div>
+        <div>
+          <div class="section-title">✅ Réalisations du jour</div>
+          <textarea id="${pid}_realisations" placeholder="Ce qui a été accompli aujourd'hui..."></textarea>
+        </div>
+        <div>
+          <div class="section-title">📅 Prévisions / Actions demain</div>
+          <textarea id="${pid}_previsions" placeholder="Tâches planifiées pour demain..."></textarea>
+        </div>
+        <div class="full">
+          <div class="section-title">💬 Commentaires & Notes</div>
+          <textarea id="${pid}_notes" placeholder="Toute information complémentaire utile..."></textarea>
+        </div>
+      </div>
+    `;
+    document.getElementById('projects-' + dept).appendChild(block);
+    addTask(pid, dept);
+    updateSummary();
+  }
+
+  // ===== Remove project =====
+  function removeProject(pid, dept) {
+    if (confirm('Supprimer ce projet ?')) {
+      const el = document.getElementById('project_' + pid);
+      if (el) el.remove();
+      updateSummary();
+    }
+  }
+
+  // ===== Update progress bar =====
+  function updateProgress(pid) {
+    const val = Math.min(100, Math.max(0, parseInt(document.getElementById(pid + '_avancement').value) || 0));
+    document.getElementById(pid + '_pct').textContent = val + '%';
+    document.getElementById(pid + '_bar').style.width = val + '%';
+  }
+
+  // ===== Add task row =====
+  function addTask(pid, dept) {
+    if (!taskCounters[pid]) taskCounters[pid] = 0;
+    taskCounters[pid]++;
+    const tid = pid + '_t' + taskCounters[pid];
+    const tbody = document.getElementById('tasks_body_' + pid);
+    const tr = document.createElement('tr');
+    tr.id = 'tr_' + tid;
+    tr.innerHTML = `
+      <td style="color:#718096;font-weight:700">${taskCounters[pid]}</td>
+      <td><input type="text" id="${tid}_nom" placeholder="Description de la tâche" style="min-width:160px" /></td>
+      <td><input type="text" id="${tid}_resp" placeholder="Nom" style="min-width:100px" /></td>
+      <td>
+        <select id="${tid}_st" class="status-select" onchange="updateTaskColor('${tid}')">
+          <option value="en_cours">🟡 En cours</option>
+          <option value="ok">🟢 Terminé</option>
+          <option value="retard">🔴 En retard</option>
+          <option value="bloque">🔴 Bloqué</option>
+          <option value="planifie">🔵 Planifié</option>
+        </select>
+      </td>
+      <td>
+        <input type="number" id="${tid}_pct" min="0" max="100" value="0"
+          oninput="updateTaskBar('${tid}','${dept}')" style="width:65px" />
+      </td>
+      <td style="min-width:100px">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill ${dept}" id="${tid}_bar" style="width:0%;height:10px;border-radius:10px;"></div>
+        </div>
+      </td>
+      <td>
+        <button class="remove-btn" onclick="removeTask('${tid}')">✕</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  function removeTask(tid) {
+    const el = document.getElementById('tr_' + tid);
+    if (el) el.remove();
+  }
+
+  function updateTaskBar(tid, dept) {
+    const val = Math.min(100, Math.max(0, parseInt(document.getElementById(tid + '_pct').value) || 0));
+    document.getElementById(tid + '_bar').style.width = val + '%';
+  }
+
+  function updateTaskColor(tid) {
+    // Optionally style row based on status
+  }
+
+  // ===== Save locally (localStorage) =====
+  function saveLocal() {
+    const data = collectData();
+    localStorage.setItem('suivi_journalier_' + data.date, JSON.stringify(data));
+    alert('✅ Sauvegarde effectuée pour le ' + data.date);
+  }
+
+  // ===== Export JSON =====
+  function exportJSON() {
+    const data = collectData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'suivi_' + data.date + '.json';
+    a.click();
+  }
+
+  // ===== Collect all form data =====
+  function collectData() {
+    return {
+      date: document.getElementById('dateJour').value,
+      responsable: document.getElementById('responsable').value,
+      direction: document.getElementById('direction').value,
+      periode: document.getElementById('periode').value,
+      observations: document.getElementById('obsGenerales').value,
+      departements: {
+        logiciel: collectDept('logiciel'),
+        informatique: collectDept('informatique'),
+        telecom: collectDept('telecom')
+      }
+    };
+  }
+
+  function collectDept(dept) {
+    const projects = [];
+    document.querySelectorAll('#projects-' + dept + ' .project-block').forEach(block => {
+      const pid = block.id.replace('project_', '');
+      const tasks = [];
+      block.querySelectorAll('tbody tr').forEach(tr => {
+        const tid = tr.id.replace('tr_', '');
+        tasks.push({
+          nom: safeVal(tid + '_nom'),
+          responsable: safeVal(tid + '_resp'),
+          statut: safeVal(tid + '_st'),
+          progression: safeVal(tid + '_pct')
+        });
+      });
+      projects.push({
+        nom: safeVal(pid + '_nom'),
+        reference: safeVal(pid + '_ref'),
+        debut: safeVal(pid + '_debut'),
+        fin: safeVal(pid + '_fin'),
+        chef: safeVal(pid + '_chef'),
+        statut: safeVal(pid + '_statut'),
+        avancement: safeVal(pid + '_avancement'),
+        budget: safeVal(pid + '_budget'),
+        equipe: safeVal(pid + '_equipe'),
+        taches: tasks,
+        problemes: safeVal(pid + '_problemes'),
+        besoins: safeVal(pid + '_besoins'),
+        realisations: safeVal(pid + '_realisations'),
+        previsions: safeVal(pid + '_previsions'),
+        notes: safeVal(pid + '_notes')
+      });
+    });
+    return projects;
+  }
+
+  function safeVal(id) {
+    const el = document.getElementById(id);
+    return el ? el.value : '';
+  }
+
+  // Auto-init one project per dept
+  window.onload = () => {
+    addProject('logiciel');
+    addProject('informatique');
+    addProject('telecom');
+  };
+</script>
+</body>
+</html>
