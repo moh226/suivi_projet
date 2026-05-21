@@ -74,7 +74,8 @@
     .section-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #718096; margin: 14px 0 8px; display: flex; align-items: center; gap: 6px; }
     .section-title::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
     .summary-bar { background: white; border-radius: 10px; padding: 20px 28px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
-    .summary-card { border-radius: 9px; padding: 16px; text-align: center; }
+    .summary-card { border-radius: 9px; padding: 16px; text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+    .summary-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     .summary-card.logiciel { background: #ebf4ff; border-left: 4px solid #2b6cb0; }
     .summary-card.informatique { background: #f0fff4; border-left: 4px solid #276749; }
     .summary-card.telecom { background: #fffaf0; border-left: 4px solid #744210; }
@@ -96,6 +97,19 @@
     .toast.error { background: #c53030; }
     .toast.success { background: #276749; }
     @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    /* Modal Historique */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-overlay.active { display: flex; }
+    .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+    .modal-header h2 { font-size: 1.3rem; color: #2d3748; }
+    .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #a0aec0; }
+    .close-btn:hover { color: #4a5568; }
+    .history-list { list-style: none; padding: 0; }
+    .history-item { padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: background 0.2s; display: flex; justify-content: space-between; align-items: center; }
+    .history-item:hover { background: #ebf4ff; border-color: #2b6cb0; }
+    .history-date { font-weight: 700; color: #2b6cb0; margin-bottom: 4px; }
+    .history-meta { font-size: 0.85rem; color: #718096; }
     @media print {
       body { background: white; }
       .tab-btn, .add-task-btn, .add-project-btn, .remove-btn, .action-bar { display: none !important; }
@@ -108,6 +122,40 @@
 
 <!-- TOAST -->
 <div id="toast" class="toast"></div>
+
+<!-- MODAL HISTORIQUE -->
+<div id="historyModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="historyModalTitle">🕰️ Historique des Sauvegardes</h2>
+      <button class="close-btn" onclick="closeHistory()">✕</button>
+    </div>
+    <div id="historyListContainer">
+      <ul id="historyList" class="history-list">
+        <!-- Les éléments d'historique seront injectés ici -->
+      </ul>
+    </div>
+    <div id="historyPreviewContainer" style="display:none;">
+      <!-- Aperçu injecté en JS -->
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PROJETS ACTIFS -->
+<div id="activeProjectsModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="activeModalTitle">📂 Projets Actifs</h2>
+      <button class="close-btn" onclick="closeActiveModal()">✕</button>
+    </div>
+    <div style="margin-bottom:15px;font-size:0.9rem;color:#718096;">
+      Cliquez sur un projet pour l'importer dans votre rapport du jour.
+    </div>
+    <ul id="activeProjectsList" class="history-list">
+      <!-- Injecté en JS -->
+    </ul>
+  </div>
+</div>
 
 <!-- HEADER -->
 <div class="header">
@@ -150,20 +198,20 @@
 
 <!-- SUMMARY BAR -->
 <div class="summary-bar">
-  <div class="summary-card logiciel">
+  <div class="summary-card logiciel" onclick="openActiveProjectsModal('logiciel')">
     <div class="s-label">🖥️ Dept. LOGICIEL</div>
     <div class="s-value" id="count-log">0</div>
-    <div class="s-label">projets actifs</div>
+    <div class="s-label">projets actifs en base</div>
   </div>
-  <div class="summary-card informatique">
+  <div class="summary-card informatique" onclick="openActiveProjectsModal('informatique')">
     <div class="s-label">💻 Dept. INFORMATIQUE</div>
     <div class="s-value" id="count-info">0</div>
-    <div class="s-label">projets actifs</div>
+    <div class="s-label">projets actifs en base</div>
   </div>
-  <div class="summary-card telecom">
+  <div class="summary-card telecom" onclick="openActiveProjectsModal('telecom')">
     <div class="s-label">📡 Dept. TÉLÉCOM</div>
     <div class="s-value" id="count-tel">0</div>
-    <div class="s-label">projets actifs</div>
+    <div class="s-label">projets actifs en base</div>
   </div>
 </div>
 
@@ -217,6 +265,7 @@
 <div class="action-bar">
   <button class="btn-print" onclick="window.print()">🖨️ Imprimer</button>
   <button class="btn-export" onclick="exportJSON()">💾 Exporter JSON</button>
+  <button class="btn-print" style="background:#e2e8f0;color:#2d3748" onclick="openHistory()">🕰️ Historique</button>
   <button class="btn-save" onclick="saveToSupabase()">✅ Sauvegarder</button>
 </div>
 
@@ -230,6 +279,9 @@
   // ========== VARIABLES GLOBALES (UNE SEULE DÉCLARATION) ==========
   let counters     = { logiciel: 0, informatique: 0, telecom: 0 };
   let taskCounters = {};
+  let currentRecordId = null;  // ID de l'enregistrement actuel en BDD
+  let globalActiveProjects = { logiciel: [], informatique: [], telecom: [] };
+  let lastSavedDataString = null; // Mémorise l'état pour éviter les doublons
 
   // ========== TOAST ==========
   function showToast(msg, type = 'success') {
@@ -246,15 +298,6 @@
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + dept).classList.add('active');
     document.querySelector('.tab-btn.' + dept).classList.add('active');
-  }
-
-  // ========== SUMMARY ==========
-  function updateSummary() {
-    ['logiciel','informatique','telecom'].forEach(d => {
-      const n = document.querySelectorAll('#projects-' + d + ' .project-block').length;
-      const map = { logiciel: 'log', informatique: 'info', telecom: 'tel' };
-      document.getElementById('count-' + map[d]).textContent = n;
-    });
   }
 
   // ========== ESCAPE HTML ==========
@@ -397,7 +440,6 @@
     block.innerHTML = buildProjectHTML(pid, dept, {});
     document.getElementById('projects-' + dept).appendChild(block);
     addTask(pid, dept);   // ajoute une tâche vide par défaut
-    updateSummary();
   }
 
   // ========== AJOUTER UN PROJET (depuis données sauvegardées) ==========
@@ -414,7 +456,6 @@
     (savedProj.taches || []).forEach(task => addTask(pid, dept, task));
     // Si aucune tâche, en ajouter une vide
     if (!savedProj.taches || savedProj.taches.length === 0) addTask(pid, dept);
-    updateSummary();
   }
 
   // ========== SUPPRIMER UN PROJET ==========
@@ -422,7 +463,6 @@
     if (confirm('Supprimer ce projet ?')) {
       const el = document.getElementById('project_' + pid);
       if (el) el.remove();
-      updateSummary();
     }
   }
 
@@ -496,20 +536,15 @@
     for (const [dept, projets] of Object.entries(data.departements || {})) {
       (projets || []).forEach(proj => addProjectFromData(dept, proj));
     }
-    updateSummary();
   }
 
-  // ========== INIT VIDE (1 projet par dépt) ==========
+  // ========== INIT VIDE (Aucun projet par défaut) ==========
   function initEmpty() {
     ['logiciel','informatique','telecom'].forEach(d => {
       document.getElementById('projects-' + d).innerHTML = '';
       counters[d] = 0;
     });
     taskCounters = {};
-    addProject('logiciel');
-    addProject('informatique');
-    addProject('telecom');
-    updateSummary();
   }
 
   // ========== EXPORT JSON (local) ==========
@@ -533,13 +568,225 @@
     };
   }
 
+  // ========== CHARGER PROJETS ACTIFS GLOBAUX ==========
+  async function loadGlobalActiveProjects() {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/suivi_projets?select=donnees&order=id.desc&limit=30`, { headers: sbHeaders() });
+      if (!res.ok) return;
+      const rows = await res.json();
+      
+      const seen = new Set();
+      const active = { logiciel: [], informatique: [], telecom: [] };
+      
+      for (const row of rows) {
+        if (!row.donnees || !row.donnees.departements) continue;
+        for (const dept of ['logiciel', 'informatique', 'telecom']) {
+          const projs = row.donnees.departements[dept] || [];
+          for (const p of projs) {
+            const key = dept + '_' + (p.nom || '').trim().toLowerCase();
+            if (!key || key === dept + '_') continue; 
+            if (!seen.has(key)) {
+              seen.add(key);
+              if (p.statut !== 'termine' && p.statut !== 'pause') {
+                active[dept].push(p);
+              }
+            }
+          }
+        }
+      }
+      
+      globalActiveProjects = active;
+      document.getElementById('count-log').textContent = active.logiciel.length;
+      document.getElementById('count-info').textContent = active.informatique.length;
+      document.getElementById('count-tel').textContent = active.telecom.length;
+      
+    } catch (err) {
+      console.error("Erreur loadGlobalActiveProjects", err);
+    }
+  }
+
+  function openActiveProjectsModal(dept) {
+    const titles = { logiciel: '🖥️ Projets Logiciels Actifs', informatique: '💻 Projets Info Actifs', telecom: '📡 Projets Télécom Actifs' };
+    document.getElementById('activeModalTitle').textContent = titles[dept];
+    
+    const projs = globalActiveProjects[dept] || [];
+    const listEl = document.getElementById('activeProjectsList');
+    
+    if (projs.length === 0) {
+      listEl.innerHTML = '<li style="text-align:center;padding:20px;color:#718096">Aucun projet actif trouvé dans la base.</li>';
+    } else {
+      listEl.innerHTML = projs.map((p, index) => `
+        <li class="history-item" onclick="importProject('${dept}', ${index})">
+          <div>
+            <div class="history-date">📁 ${escapeHtml(p.nom)}</div>
+            <div class="history-meta">Chef: ${escapeHtml(p.chef||'N/A')} • Réf: ${escapeHtml(p.reference||'N/A')} • Avancement: ${p.avancement || 0}%</div>
+          </div>
+          <div style="font-size:0.8rem;background:#e2e8f0;padding:4px 8px;border-radius:12px;color:#4a5568;font-weight:bold;">
+            Importer ➔
+          </div>
+        </li>
+      `).join('');
+    }
+    
+    document.getElementById('activeProjectsModal').classList.add('active');
+  }
+
+  function closeActiveModal() {
+    document.getElementById('activeProjectsModal').classList.remove('active');
+  }
+
+  function importProject(dept, index) {
+    const p = globalActiveProjects[dept][index];
+    addProjectFromData(dept, p);
+    closeActiveModal();
+    switchTab(dept);
+    showToast("✅ Projet importé !");
+  }
+
+  // ========== HISTORIQUE ==========
+  let currentPreviewRecord = null;
+
+  function openHistory() {
+    document.getElementById('historyModal').classList.add('active');
+    document.getElementById('historyListContainer').style.display = 'block';
+    document.getElementById('historyPreviewContainer').style.display = 'none';
+    document.getElementById('historyModalTitle').innerHTML = '🕰️ Historique des Sauvegardes';
+    loadHistoryList();
+  }
+
+  function closeHistory() {
+    document.getElementById('historyModal').classList.remove('active');
+  }
+
+  async function loadHistoryList() {
+    const listEl = document.getElementById('historyList');
+    listEl.innerHTML = '<li style="text-align:center;padding:20px;color:#718096">Chargement...</li>';
+    try {
+      // On récupère les 50 dernières sauvegardes
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/suivi_projets?select=id,date,responsable,periode&order=id.desc&limit=50`,
+        { headers: sbHeaders() }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const rows = await res.json();
+      
+      if (!rows || rows.length === 0) {
+        listEl.innerHTML = '<li style="text-align:center;padding:20px;color:#718096">Aucun historique trouvé.</li>';
+        return;
+      }
+      
+      listEl.innerHTML = rows.map(r => `
+        <li class="history-item" onclick="previewHistoryRecord(${r.id})">
+          <div>
+            <div class="history-date">📅 ${r.date}</div>
+            <div class="history-meta">👤 ${escapeHtml(r.responsable) || 'Inconnu'} • 🔄 ${escapeHtml(r.periode) || 'N/A'}</div>
+          </div>
+          <div style="font-size:0.8rem;background:#e2e8f0;padding:4px 8px;border-radius:12px;color:#4a5568;font-weight:bold;">
+            Détails ➔
+          </div>
+        </li>
+      `).join('');
+    } catch (err) {
+      console.error(err);
+      listEl.innerHTML = `<li style="text-align:center;padding:20px;color:#e53e3e">Erreur: ${err.message}</li>`;
+    }
+  }
+
+  async function previewHistoryRecord(id) {
+    const previewEl = document.getElementById('historyPreviewContainer');
+    const listEl = document.getElementById('historyListContainer');
+    const titleEl = document.getElementById('historyModalTitle');
+    
+    listEl.style.display = 'none';
+    previewEl.style.display = 'block';
+    previewEl.innerHTML = '<div style="text-align:center;padding:20px;">Chargement des détails...</div>';
+    
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/suivi_projets?id=eq.${id}&select=*`, { headers: sbHeaders() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const rows = await res.json();
+      if (rows && rows.length > 0) {
+        const r = rows[0];
+        currentPreviewRecord = r;
+        const d = r.donnees || {};
+        
+        let html = `
+          <button onclick="backToHistoryList()" style="margin-bottom:15px; background:none; border:none; color:#2b6cb0; cursor:pointer; font-weight:bold; font-size:0.9rem;">⬅ Retour à la liste</button>
+          <div style="background:#f7fafc; padding:15px; border-radius:8px; margin-bottom:15px; font-size:0.9rem; color:#2d3748;">
+            <p style="margin-bottom:4px;"><strong>📅 Date:</strong> ${r.date}</p>
+            <p style="margin-bottom:4px;"><strong>👤 Responsable:</strong> ${escapeHtml(r.responsable)}</p>
+            <p style="margin-bottom:4px;"><strong>🔄 Période:</strong> ${escapeHtml(r.periode)}</p>
+            <p style="margin-bottom:0;"><strong>💬 Observations:</strong> ${escapeHtml(r.observations || 'Aucune')}</p>
+          </div>
+          <h3 style="font-size:1rem; margin-bottom:10px; color:#2d3748;">Contenu du rapport :</h3>
+          <div style="max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0; padding:10px; border-radius:8px; margin-bottom:15px;">
+        `;
+        
+        let hasProjects = false;
+        for (const dept of ['logiciel', 'informatique', 'telecom']) {
+          const projs = (d.departements && d.departements[dept]) || [];
+          if (projs.length > 0) {
+            hasProjects = true;
+            html += `<h4 style="margin-top:5px; margin-bottom:5px; color:#4a5568; text-transform:uppercase; font-size:0.8rem;">🖥️ ${dept} (${projs.length})</h4>`;
+            html += `<ul style="list-style-type:none; padding-left:0; margin-bottom:15px; font-size:0.9rem; color:#4a5568;">`;
+            projs.forEach(p => {
+               html += `<li style="margin-bottom:4px; padding:6px; background:#fff; border:1px solid #e2e8f0; border-radius:6px;">
+                 <strong>${escapeHtml(p.nom)}</strong><br>
+                 <span style="font-size:0.8rem; color:#718096;">Statut: ${p.statut} • Avancement: ${p.avancement||0}%</span>
+               </li>`;
+            });
+            html += `</ul>`;
+          }
+        }
+        if (!hasProjects) {
+          html += `<p style="font-size:0.9rem; color:#718096; text-align:center;">Aucun projet dans ce rapport.</p>`;
+        }
+        
+        html += `
+          </div>
+          <button class="btn-save" style="width:100%; padding:12px; font-size:1rem; border-radius:8px;" onclick="applyPreviewRecord()">📥 Charger ce rapport dans l'éditeur</button>
+        `;
+        previewEl.innerHTML = html;
+        titleEl.innerHTML = `Détails du rapport`;
+      }
+    } catch (err) {
+      previewEl.innerHTML = `<div style="color:red; padding:20px; text-align:center;">Erreur: ${err.message}</div>
+      <div style="text-align:center;"><button class="btn-export" onclick="backToHistoryList()" style="margin-top:10px;">Retour</button></div>`;
+    }
+  }
+
+  function backToHistoryList() {
+    document.getElementById('historyListContainer').style.display = 'block';
+    document.getElementById('historyPreviewContainer').style.display = 'none';
+    document.getElementById('historyModalTitle').innerHTML = '🕰️ Historique des Sauvegardes';
+  }
+
+  function applyPreviewRecord() {
+    if (!currentPreviewRecord) return;
+    const r = currentPreviewRecord;
+    currentRecordId = r.id;
+    const savedData = r.donnees || {};
+    savedData.date         = r.date;
+    savedData.responsable  = r.responsable;
+    savedData.direction    = r.direction;
+    savedData.periode      = r.periode;
+    savedData.observations = r.observations;
+    
+    loadDataIntoPage(savedData);
+    lastSavedDataString = JSON.stringify(collectData());
+    closeHistory();
+    showToast("✅ Version de l'historique chargée");
+  }
+
   // ========== CHARGEMENT DEPUIS SUPABASE ==========
   async function loadFromSupabase() {
     const date = document.getElementById('dateJour').value;
     if (!date) return;
+    currentRecordId = null;  // reset à chaque changement de date
     try {
+      // Tri par id desc pour prendre le dernier enregistrement si doublons
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/suivi_projets?date=eq.${date}&select=*`,
+        `${SUPABASE_URL}/rest/v1/suivi_projets?date=eq.${date}&select=*&order=id.desc&limit=1`,
         { headers: sbHeaders() }
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -547,6 +794,7 @@
       if (rows && rows.length > 0) {
         // La colonne "donnees" contient tout l'objet JSON
         const record = rows[0];
+        currentRecordId = record.id;  // Mémoriser l'ID pour la mise à jour
         const savedData = record.donnees || {};
         // on s'assure que les champs de premier niveau sont corrects
         savedData.date         = record.date;
@@ -555,24 +803,34 @@
         savedData.periode      = record.periode;
         savedData.observations = record.observations;
         loadDataIntoPage(savedData);
+        lastSavedDataString = JSON.stringify(collectData());
         showToast('✅ Données chargées pour le ' + date);
       } else {
         initEmpty();
+        lastSavedDataString = JSON.stringify(collectData());
         showToast('ℹ️ Aucune donnée pour cette date — formulaire vide', 'success');
       }
     } catch (err) {
       console.error(err);
       showToast('❌ Erreur de chargement : ' + err.message, 'error');
       initEmpty();
+      lastSavedDataString = JSON.stringify(collectData());
     }
   }
 
-  // ========== SAUVEGARDE VERS SUPABASE ==========
+  // ========== SAUVEGARDE VERS SUPABASE (TOUJOURS INSÉRER) ==========
   async function saveToSupabase() {
     const date = document.getElementById('dateJour').value;
     if (!date) { showToast('⚠️ Veuillez sélectionner une date', 'error'); return; }
 
     const collected = collectData();
+    const currentDataString = JSON.stringify(collected);
+    
+    if (lastSavedDataString === currentDataString) {
+      showToast('ℹ️ Aucune modification détectée. Pas de sauvegarde nécessaire.', 'success');
+      return;
+    }
+
     const payload = {
       date:         date,
       responsable:  collected.responsable,
@@ -583,33 +841,38 @@
     };
 
     try {
-      // Vérifier si un enregistrement existe pour cette date
-      const check = await fetch(
-        `${SUPABASE_URL}/rest/v1/suivi_projets?date=eq.${date}&select=id`,
-        { headers: sbHeaders() }
+      // Toujours insérer une nouvelle ligne (POST)
+      // Les anciennes données restent intactes dans la base
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/suivi_projets`,
+        {
+          method:  'POST',
+          headers: sbHeaders({ 'Prefer': 'return=representation' }),
+          body:    JSON.stringify(payload)
+        }
       );
-      if (!check.ok) throw new Error(`HTTP ${check.status}`);
-      const existing = await check.json();
 
-      let method, url;
-      if (existing && existing.length > 0) {
-        method = 'PATCH';
-        url    = `${SUPABASE_URL}/rest/v1/suivi_projets?id=eq.${existing[0].id}`;
-      } else {
-        method = 'POST';
-        url    = `${SUPABASE_URL}/rest/v1/suivi_projets`;
-      }
-
-      const res = await fetch(url, {
-        method:  method,
-        headers: sbHeaders(),
-        body:    JSON.stringify(payload)
-      });
       if (!res.ok) {
         const errBody = await res.text();
         throw new Error(`HTTP ${res.status} — ${errBody}`);
       }
+
+      // Mémoriser l'ID du nouvel enregistrement
+      const result = await res.json();
+      if (Array.isArray(result) && result.length > 0 && result[0].id) {
+        currentRecordId = result[0].id;
+      }
+
       showToast('✅ Sauvegardé dans Supabase pour le ' + date);
+      
+      // Vider les champs
+      setTimeout(() => {
+        initEmpty();
+        document.getElementById('obsGenerales').value = '';
+        loadGlobalActiveProjects(); // recharger pour mettre à jour les cartes
+        lastSavedDataString = JSON.stringify(collectData()); // met à jour l'état vide
+      }, 1500);
+
     } catch (err) {
       console.error(err);
       showToast('❌ Échec sauvegarde : ' + err.message, 'error');
@@ -619,7 +882,8 @@
   // ========== INITIALISATION ==========
   window.onload = () => {
     document.getElementById('dateJour').value = new Date().toISOString().split('T')[0];
-    loadFromSupabase();
+    loadGlobalActiveProjects(); // Charge les compteurs de la DB
+    loadFromSupabase();         // Charge le rapport du jour
   };
 </script>
 </body>
