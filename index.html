@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Suivi Journalier des Projets</title>
+  <!-- Ajout de SheetJS pour l'export Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #2d3748; padding: 20px; }
@@ -264,7 +266,7 @@
 <!-- ACTIONS -->
 <div class="action-bar">
   <button class="btn-print" onclick="window.print()">🖨️ Imprimer</button>
-  <button class="btn-export" onclick="exportJSON()">💾 Exporter JSON</button>
+  <button class="btn-export" style="background:#38a169;color:white;" onclick="exportExcel()">📊 Exporter Excel</button>
   <button class="btn-print" style="background:#e2e8f0;color:#2d3748" onclick="openHistory()">🕰️ Historique</button>
   <button class="btn-save" onclick="saveToSupabase()">✅ Sauvegarder</button>
 </div>
@@ -547,14 +549,56 @@
     taskCounters = {};
   }
 
-  // ========== EXPORT JSON (local) ==========
-  function exportJSON() {
+  // ========== EXPORT EXCEL (local) ==========
+  function exportExcel() {
     const data = collectData();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'suivi_' + data.date + '.json';
-    a.click();
+    const rows = [];
+    
+    // Convertir les données hiérarchiques en lignes plates pour Excel
+    for (const [dept, projets] of Object.entries(data.departements || {})) {
+      if (!projets || projets.length === 0) continue;
+      
+      projets.forEach(p => {
+        rows.push({
+          "Date": data.date,
+          "Responsable": data.responsable,
+          "Période": data.periode,
+          "Département": dept.toUpperCase(),
+          "Projet": p.nom,
+          "Référence": p.reference,
+          "Statut": p.statut,
+          "Avancement (%)": p.avancement,
+          "Chef de projet": p.chef,
+          "Budget (FCFA)": p.budget,
+          "Équipe": p.equipe,
+          "Date début": p.debut,
+          "Date fin": p.fin,
+          "Obs. Générales": data.observations,
+          "Problèmes": p.problemes,
+          "Besoins": p.besoins,
+          "Réalisations": p.realisations,
+          "Prévisions": p.previsions,
+          "Notes": p.notes
+        });
+      });
+    }
+
+    if (rows.length === 0) {
+      showToast('⚠️ Aucun projet à exporter', 'error');
+      return;
+    }
+
+    // Créer la feuille de calcul
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Projets");
+    
+    // Ajuster grossièrement la largeur des colonnes
+    const wscols = Object.keys(rows[0]).map(() => ({ wch: 20 }));
+    worksheet['!cols'] = wscols;
+
+    // Déclencher le téléchargement
+    XLSX.writeFile(workbook, `Suivi_Projets_${data.date}.xlsx`);
   }
 
   // ========== HEADERS SUPABASE ==========
